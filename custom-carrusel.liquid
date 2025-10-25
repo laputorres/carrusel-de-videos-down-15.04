@@ -1,0 +1,233 @@
+{{ 'component-slider.css' | asset_url | stylesheet_tag }}
+{{ 'component-deferred-media.css' | asset_url | stylesheet_tag }}
+{% style %}
+  .custom-list-videos{
+    height:600px;
+    gap:5%;
+  }
+
+  .item_video_custom .video-section__media, .item_video_custom .video-section__media video{
+    height:100%;
+    width:100%;
+  }
+
+ .item_video_custom, .item_video_custom  .video-section__poster{
+  border-radius:20px;
+  overflow:hidden;
+}
+
+
+{% endstyle %}
+
+{%- liquid
+  assign columns_mobile_int = section.settings.columns_mobile | plus: 0
+  assign show_mobile_slider = false
+  assign show_desktop_slider = false
+  assign poster = block.settings.preview_image | default: section.settings.cover_image
+  assign video_id = section.settings.video.id
+ assign show_mobile_slider = true
+  if section.settings.swipe_on_mobile and section.blocks.size > columns_mobile_int
+    assign show_mobile_slider = true
+  endif
+
+  if section.blocks.size > section.settings.columns_desktop
+    assign show_desktop_slider = true
+  endif
+-%}
+
+<div
+  class="page-width section-{{ section.id }}-padding isolate{% if settings.animations_reveal_on_scroll %} scroll-trigger animate--slide-in{% endif %}"
+  {% if settings.animations_reveal_on_scroll %}
+    data-cascade
+  {% endif %}
+>
+   <div class="title-wrapper title-wrapper--no-top-margin{% if settings.animations_reveal_on_scroll %} scroll-trigger animate--slide-in{% endif %}">
+          <h2 class="title inline-richtext {{ section.settings.heading_size }}">{{ section.settings.heading }}</h2>
+        </div>
+  <slider-component class="slider-mobile-gutter{% if section.settings.full_width %} slider-component-full-width{% endif %}{% if show_mobile_slider == false %} page-width{% endif %}{% if show_desktop_slider == false and section.settings.full_width == false %} page-width-desktop{% endif %}{% if show_desktop_slider %} slider-component-desktop{% endif %}{% if settings.animations_reveal_on_scroll %} scroll-trigger animate--slide-in{% endif %}">
+    <ul
+      id="Slider-{{ section.id }}"
+      data-id="{{ section.id }}"
+      class="
+        grid contains-card custom-list-videos grid--{{ section.settings.columns_desktop }}-col-desktop
+        {% if show_desktop_slider %} slider slider--desktop{% endif %}
+        {% if show_mobile_slider %} slider slider--tablet grid--peek{% endif %}
+         grid--1-col-tablet-down
+      "
+      role="list"
+      aria-label="Videos carousel"
+    >
+      {%- if section.blocks.size > 0 -%}
+        {%- for block in section.blocks -%}
+          <li
+  id="Slide-{{ section.id }}-{{ forloop.index }}"
+  class="item_video_custom grid__item{% if show_mobile_slider or show_desktop_slider %} slider__slide{% endif %}{% if settings.animations_reveal_on_scroll %} scroll-trigger animate--slide-in{% endif %}"
+  {{ block.shopify_attributes }}
+>
+  {% assign poster = block.settings.preview_image %}
+  <deferred-media
+    class="video-section__media deferred-media gradient global-media-settings"
+    data-media-id="Video-{{ block.id }}"
+  >
+    <button
+      id="Deferred-Poster-Modal-{{ block.id }}"
+      class="video-section__poster media deferred-media__poster media--landscape"
+      type="button"
+      aria-label="Play video"
+    >
+      {%- if poster != blank -%}
+        {{ poster | image_url: width: 1200 | image_tag: class: "deferred-media__poster-image" }}
+      {%- else -%}
+        {{ 'hero-apparel-3' | placeholder_svg_tag: 'placeholder-svg placeholder' }}
+      {%- endif -%}
+      <span class="deferred-media__poster-button motion-reduce">
+        <span class="svg-wrapper">
+          {{- 'icon-play.svg' | inline_asset_content -}}
+        </span>
+      </span>
+    </button>
+    <template>
+      {{ block.settings.video
+        | video_tag:
+          autoplay: true,
+          loop: section.settings.enable_video_looping,
+          controls: true,
+          muted: false,
+          playsinline: true
+      }}
+    </template>
+  </deferred-media>
+</li>
+
+        {%- endfor -%}
+      {%- endif -%}
+    </ul>
+
+    {%- if show_mobile_slider or show_desktop_slider -%}
+      <div class="slider-buttons">
+        <button
+          type="button"
+          class="slider-button slider-button--prev"
+          name="previous"
+          aria-label="{{ 'general.slider.previous_slide' | t }}"
+          aria-controls="Slider-{{ section.id }}"
+        >
+          <span class="svg-wrapper">
+            {{- 'icon-caret.svg' | inline_asset_content -}}
+          </span>
+        </button>
+        <div class="slider-counter caption">
+          <span class="slider-counter--current">1</span>
+          <span aria-hidden="true"> / </span>
+          <span class="slider-counter--total">{{ section.blocks.size }}</span>
+        </div>
+        <button
+          type="button"
+          class="slider-button slider-button--next"
+          name="next"
+          aria-label="{{ 'general.slider.next_slide' | t }}"
+          aria-controls="Slider-{{ section.id }}"
+        >
+          <span class="svg-wrapper">
+            {{- 'icon-caret.svg' | inline_asset_content -}}
+          </span>
+        </button>
+      </div>
+    {%- endif -%}
+  </slider-component>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const videos = document.querySelectorAll('.videos_carousel video');
+
+  videos.forEach(video => {
+    video.addEventListener('play', () => {
+      videos.forEach(v => {
+        if (v !== video) v.pause();
+      });
+    });
+  });
+});
+</script>
+
+
+{% schema %}
+{
+  "name": "videos carousel",
+  "tag": "section",
+  "class": "videos_carousel",
+  "disabled_on": {
+    "groups": ["header", "footer"]
+  },
+  "settings": [
+     {
+      "type": "inline_richtext",
+      "id": "heading",
+      "default": "t:sections.video.settings.heading.default",
+      "label": "t:sections.video.settings.heading.label"
+    },
+    {
+      "type": "select",
+      "id": "heading_size",
+      "options": [
+        {
+          "value": "h2",
+          "label": "t:sections.all.heading_size.options__1.label"
+        },
+        {
+          "value": "h1",
+          "label": "t:sections.all.heading_size.options__2.label"
+        },
+        {
+          "value": "h0",
+          "label": "t:sections.all.heading_size.options__3.label"
+        },
+        {
+          "value": "hxl",
+          "label": "t:sections.all.heading_size.options__4.label"
+        },
+        {
+          "value": "hxxl",
+          "label": "t:sections.all.heading_size.options__5.label"
+        }
+      ],
+      "default": "h1",
+      "label": "t:sections.all.heading_size.label"
+    },
+    {
+      "type": "range",
+      "id": "columns_desktop",
+      "min": 1,
+      "max": 6,
+      "step": 1,
+      "default": 3,
+      "label": "t:sections.multicolumn.settings.columns_desktop.label"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "column",
+      "name": "video",
+      "settings": [
+        {
+          "type": "video",
+          "id": "video",
+          "label": "video"
+        },
+        {
+          "type": "image_picker",
+          "id": "preview_image",
+          "label": "banner video"
+        }
+      ]
+    }
+  ],
+
+  "presets": [
+    {
+      "name": "Videos Carousel"
+    }
+  ]
+}
+{% endschema %}
